@@ -1,6 +1,6 @@
 # dc-bot-with-steamAPI
 
-#Janusz:
+Janusz:
 Aplication ID
 960888650768457779
 
