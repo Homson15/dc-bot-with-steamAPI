@@ -1,4 +1,5 @@
 
+from steam.steamid import SteamID
 
 S = None
 
@@ -15,4 +16,5 @@ def getSteam():
 class Steam:
 
     def __init__(self):
-        pass
+
+        print(SteamID())
