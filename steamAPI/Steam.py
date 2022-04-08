@@ -25,7 +25,7 @@ class Steam:
 
 
         print(self.getApp(SVid))
-        res = self.getAppIdByName("It Takes Two")
+        res = self.getAppIdByName("Witcher")
         if not isinstance(res, int):
             print(res.id, res.name, res.isDLC)
 
@@ -36,6 +36,8 @@ class Steam:
 
         url = f"https://api.steampowered.com/ISteamApps/GetAppList/v2/"
         request = requests.get(url).json()
+
+        print(len(request["applist"]["apps"]))
 
         #print(type(request))
 
