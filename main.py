@@ -1,9 +1,9 @@
 
-from steamAPI.Steam import getSteam
+#from steamAPI.Steam import getSteam
 
 
 if __name__ == '__main__':
-
-    steamAPI = getSteam()
+    pass
+    #steamAPI = getSteam()
 
 
