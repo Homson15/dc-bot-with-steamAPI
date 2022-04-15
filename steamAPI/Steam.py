@@ -35,8 +35,10 @@ class Steam:
 
         if not os.path.exists(os.path.join("database", "gamesInfo.db")):
             self.gatherData()
+        else:
+            self.updateData()
 
-        self.getAppArrWithName("PAYDAY")
+        #self.getAppArrWithName("PAYDAY")
 
 
 
@@ -45,18 +47,51 @@ class Steam:
         print(f"Gathering new data from Steam ...")
 
         url = f"https://api.steampowered.com/ISteamApps/GetAppList/v2/"
-        request = requests.get(url).json()
+        request = requests.get(url)
+        file = request.json()
 
         db = getDatabase()
 
-        print(request["applist"]["apps"][0])
+        #print(request["applist"]["apps"][0])
 
-        for each in request["applist"]["apps"]:
+        for each in file["applist"]["apps"]:
             #print(each["appid"])
             app = App(each["appid"], each["name"])
-            if app.selfSetValues():
+            app.selfSetValues()
+            print(f"Adding {app.name}")
+            db.putData(app)
+
+
+    def updateData(self):
+
+        db = getDatabase()
+
+        data = db.getAllRecords()
+
+        url = f"https://api.steampowered.com/ISteamApps/GetAppList/v2/"
+        request = requests.get(url)
+        file = request.json()
+
+        arr = []
+
+        for element in data:
+            arr.append(element.appID)
+
+        for each in file["applist"]["apps"]:
+            if not each["appid"] in arr:
+                app = App(each["appid"], each["name"])
+                app.selfSetValues()
+                print("Found new values for database")
                 print(f"Adding {app.name}")
                 db.putData(app)
+            else:
+                print(f"{each['appid']} ({each['name']}) is already in database")
+
+        print("All is up to date!")
+
+
+
+
 
 
     def getAppArrWithName(self, name):
@@ -109,11 +144,12 @@ class Steam:
     def getApp(self, appid: int):
 
         url = f'https://store.steampowered.com/api/appdetails?appids={appid}'
-        request = requests.get(url).json()
+        request = requests.get(url)
+        file = request.json()
 
-        if request:
+        if file:
 
-            name = request[f"{appid}"]["data"]["name"]
+            name = file[f"{appid}"]["data"]["name"]
 
             app = App(appid, name)
             if app.selfSetValues():
