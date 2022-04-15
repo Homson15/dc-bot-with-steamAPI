@@ -1,8 +1,8 @@
-import json
-
 import requests
+import os
 
 from steamAPI.App import App
+from database.Database import getDatabase
 
 S = None
 
@@ -21,45 +21,107 @@ class Steam:
 
         self.KEY = "F4A04A3F753F55A7D6D9BEFEB35EB92C"
 
+        """
         SVid = 413150
 
+        print(self.getApp(SVid).getValues()) #testy dla id stardew Valley
 
-        print(self.getApp(SVid))
-        res = self.getAppIdByName("Witcher")
+        
+        res = self.getAppIdByName("Witcher") #testy wyszukiwania
         if not isinstance(res, int):
-            print(res.id, res.name, res.isDLC)
+            res.selfSetValues();
+            print(res.getValues())
+        """
+
+        if not os.path.exists(os.path.join("database", "gamesInfo.db")):
+            self.gatherData()
+
+        self.getAppArrWithName("PAYDAY")
 
 
 
+    def gatherData(self):
 
-    def getAppIdByName(self, name):
+        print(f"Gathering new data from Steam ...")
 
         url = f"https://api.steampowered.com/ISteamApps/GetAppList/v2/"
         request = requests.get(url).json()
 
-        print(len(request["applist"]["apps"]))
+        db = getDatabase()
 
-        #print(type(request))
+        print(request["applist"]["apps"][0])
 
-
-        for each in reversed(request["applist"]["apps"]):
-            if name in each["name"]:
-                try:
-                    print(each["appid"], each["name"])
-                    req = requests.get(f'https://store.steampowered.com/api/appdetails?appids={each["appid"]}').json()[str(each["appid"])]["data"]
-                    if req["type"] == "game":
-                        return App(each["appid"], each["name"], False)
-                    elif req["type"] == "dlc":
-                        #print(name, req["fullgame"]["name"])
-                        if name in req["fullgame"]["name"]:
-                            return App(req["fullgame"]["appid"], req["fullgame"]["name"], False)
-                except KeyError:
-                    pass
-
-        return -1
+        for each in request["applist"]["apps"]:
+            #print(each["appid"])
+            app = App(each["appid"], each["name"])
+            if app.selfSetValues():
+                print(f"Adding {app.name}")
+                db.putData(app)
 
 
-    def getApp(self, id):
+    def getAppArrWithName(self, name):
 
-        url = f'https://store.steampowered.com/api/appdetails?appids={id}'
-        return requests.get(url).text
+        data = getDatabase().getRecordByName(name)
+
+        arr = []
+
+        for each in data:
+            arr.append(each.getValues())
+
+        return arr
+
+
+
+
+    def subscribe(self, appid : int):
+
+        app = self.getApp(appid)
+
+        if app.appID != 0:
+            getDatabase().subscribe(app)
+
+
+    def checkSubscribed(self):
+
+        db = getDatabase()
+
+        apps = db.getSubscribed()
+
+        discounted = []
+
+        for app in apps:
+            oldDiscount = app.discount
+            app.selfSetValues()
+            if app.discount < oldDiscount:
+                discounted.append(app)
+                db.modifySubbscribed(app)
+
+        return discounted
+
+
+    def unsubscribe(self, appid: int):
+
+        getDatabase().deleteSubscribed(App(appid, "Whatever"))
+
+
+
+
+    def getApp(self, appid: int):
+
+        url = f'https://store.steampowered.com/api/appdetails?appids={appid}'
+        request = requests.get(url).json()
+
+        if request:
+
+            name = request[f"{appid}"]["data"]["name"]
+
+            app = App(appid, name)
+            if app.selfSetValues():
+                return app
+            else:
+                return App(0,"Error!")
+
+        else:
+            return App(0,"Error!")
+
+
