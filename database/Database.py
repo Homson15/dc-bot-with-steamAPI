@@ -78,6 +78,28 @@ class Database:
         session.commit()
         session.close()
 
+    def getAllRecords(self):
+
+        DBSesion = sessionmaker(bind=self.base)
+        session = DBSesion()
+
+        arr = []
+
+        for each in session.query(self.GamesInfo):
+            arr.append(App(
+                appID=each.appID,
+                name=each.name,
+                isGame=each.isGame,
+                type=each.type,
+                parent=each.parentID,
+                developers=each.developers,
+                currency=each.currency,
+                price=each.initialPrice,
+                discount=each.discount,
+                finalFormatted=each.finalFormatted
+            ))
+
+        return arr
 
     def getRecordByName(self, name):
 
@@ -89,15 +111,16 @@ class Database:
         for each in session.query(self.GamesInfo):
             if name in each.name:
                 arr.append(App(
-                    each.appID,
-                    each.name,
-                    each.isGame,
-                    each.type,
-                    each.parentID,
-                    each.developers,
-                    each.currency,
-                    each.initialPrice,
-                    each.discount
+                    appID=each.appID,
+                    name=each.name,
+                    isGame=each.isGame,
+                    type=each.type,
+                    parent=each.parentID,
+                    developers=each.developers,
+                    currency=each.currency,
+                    price=each.initialPrice,
+                    discount=each.discount,
+                    finalFormatted=each.finalFormatted
                 ))
 
         return arr
@@ -129,8 +152,8 @@ class Database:
 
         for each in session.query(self.SubscridebGames):
             arr.append(App(
-                each.appID,
-                each.name,
+                appID=each.appID,
+                name=each.name,
                 discount=each.discount,
                 finalFormatted=each.finalFormatted
             ))

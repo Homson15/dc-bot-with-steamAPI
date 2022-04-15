@@ -3,9 +3,9 @@ import requests
 
 class App:
 
-    def __init__(self, id, name, isGame=False, type=None, parent=None, developers=None, currency="PLN", price=0, finalPrice=0, discount=0, finalFormatted=""):
+    def __init__(self, appID, name, isGame=False, type=None, parent=None, developers=None, currency="PLN", price=0, finalPrice=0, discount=0, finalFormatted=""):
 
-        self.appID = id
+        self.appID = appID
         self.name = name
 
         self.isGame = isGame
@@ -18,20 +18,22 @@ class App:
         self.discount = discount
         self.priceFormatted = finalFormatted
 
-        self.url = f'https://store.steampowered.com/api/appdetails?appids={id}'
+        self.url = f'https://store.steampowered.com/api/appdetails?appids={appID}'
 
         self.valuesSet = False
 
     def selfSetValues(self):
 
-        request = requests.get(self.url).json()
+        request = requests.get(self.url)
+        file = request.json()
 
-        if not request:
+
+        if not file:
             print(f"Request returns NULL for {self.appID} ({self.name})")
             return False
 
         try:
-            data = request[f"{self.appID}"]["data"]
+            data = file[f"{self.appID}"]["data"]
 
             self.type = data["type"]
 
