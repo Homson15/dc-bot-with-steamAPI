@@ -44,6 +44,9 @@ class Steam:
 
     def gatherData(self):
 
+        if os.path.exists(os.path.join("database", "gamesInfo.db")):
+            print("[!] File already exists, try updateData() method...")
+
         print(f"Gathering new data from Steam ...")
 
         url = f"https://api.steampowered.com/ISteamApps/GetAppList/v2/"
@@ -81,8 +84,8 @@ class Steam:
             if not each["appid"] in arr:
                 app = App(each["appid"], each["name"])
                 app.selfSetValues()
-                print("Found new values for database")
-                print(f"Adding {app.name}")
+                #print("Found new values for database")
+                print(f"Adding {app.appID} ({app.name})")
                 db.putData(app)
             else:
                 print(f"{each['appid']} ({each['name']}) is already in database")
