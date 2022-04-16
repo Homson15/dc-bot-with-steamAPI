@@ -83,7 +83,7 @@ class Steam:
         for each in file["applist"]["apps"]:
             if not each["appid"] in arr:
                 app = App(each["appid"], each["name"])
-                app.selfSetValues()
+                app.selfSetValues(False)
                 #print("Found new values for database")
                 print(f"Adding {app.appID} ({app.name})")
                 db.putData(app)

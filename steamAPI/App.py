@@ -22,14 +22,15 @@ class App:
 
         self.valuesSet = False
 
-    def selfSetValues(self):
+    def selfSetValues(self, printFLAG=True):
 
         request = requests.get(self.url)
         file = request.json()
 
 
         if not file:
-            print(f"Request returns NULL for {self.appID} ({self.name})")
+            if printFLAG:
+                print(f"Request returns NULL for {self.appID} ({self.name})")
             return False
 
         try:
@@ -60,8 +61,9 @@ class App:
             return True
 
         except KeyError:
-            print(f"Error while geting values for {self.appID} ({self.name}) \n"
-                  f"Gathering data stopped...")
+            if printFLAG:
+                print(f"Error while geting values for {self.appID} ({self.name}) \n"
+                      f"Gathering data stopped...")
             return False
 
     def getValues(self):
