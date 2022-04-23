@@ -3,7 +3,7 @@ import requests
 
 class App:
 
-    def __init__(self, appID, name, isGame=False, type=None, parent=None, developers=None, currency="PLN", price=0, finalPrice=0, discount=0, finalFormatted=""):
+    def __init__(self, appID, name, isGame=False, type=None, parent=None, developers=None, currency="PLN", price=0, finalPrice=0, discount=0, finalFormatted="", serverID=0):
 
         self.appID = appID
         self.name = name
@@ -17,6 +17,7 @@ class App:
         self.finalPrice = finalPrice
         self.discount = discount
         self.priceFormatted = finalFormatted
+        self.serverID = serverID
 
         self.url = f'https://store.steampowered.com/api/appdetails?appids={appID}'
 
@@ -70,6 +71,6 @@ class App:
 
         return {"appID": self.appID, "name": self.name, "isGame": self.isGame, "type": self.type, "parentID": self.parent,
                 "developers": self.developers, "currency": self.currency, "initialPrice": self.initialPrice, "finalPrice": self.finalPrice,
-                "discount": self.discount, "priceFormatted": self.priceFormatted}
+                "discount": self.discount, "priceFormatted": self.priceFormatted, "serverID": self.serverID}
 
 
