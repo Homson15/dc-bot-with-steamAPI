@@ -1,25 +1,39 @@
 import os
+
+import sqlalchemy.exc
 from sqlalchemy import Column, Integer, String, create_engine, MetaData, Boolean, inspect, update, delete
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from sqlite3 import IntegrityError
+
 from steamAPI.App import App
 
-database = None
+databaseS = None
+databaseJ = None
 
 
 def getDatabase():
 
-    global database
+    global databaseS
 
-    if database is None:
-        database = Database()
+    if databaseS is None:
+        databaseS = SteamDB()
 
-    return database
+    return databaseS
+
+def getJanuszDatabase():
+
+    global databaseJ
+
+    if databaseJ is None:
+        databaseJ = JanuszDB()
+
+    return databaseJ
 
 
 
-class Database:
+class SteamDB:
 
     base = create_engine("sqlite:///database/gamesInfo.db")
 
@@ -46,6 +60,7 @@ class Database:
         name = Column(String(100), nullable=False)
         discount = Column(Integer, nullable=False)
         finalFormatted = Column(String(20))
+        serverID = Column(String(100), nullable=False)
 
 
 
@@ -99,6 +114,9 @@ class Database:
                 finalFormatted=each.finalFormatted
             ))
 
+        session.commit()
+        session.close()
+
         return arr
 
     def getRecordByName(self, name):
@@ -109,7 +127,7 @@ class Database:
         arr = []
 
         for each in session.query(self.GamesInfo):
-            if name in each.name:
+            if name in each.name and each.type == 'game':
                 arr.append(App(
                     appID=each.appID,
                     name=each.name,
@@ -123,63 +141,85 @@ class Database:
                     finalFormatted=each.finalFormatted
                 ))
 
+
+
+        session.commit()
+        session.close()
+
         return arr
 
-    def subscribe(self, app : App):
+
+    def subscribe(self, app : App, serverID):
 
         DBSesion = sessionmaker(bind=self.base)
         session = DBSesion()
 
         values = app.getValues()
 
-        session.add(self.SubscridebGames(
-            appID=values["appID"],
-            name=values["name"],
-            discount=values["discount"],
-            finalFormatted=values["priceFormatted"]
-        ))
+        try:
+            session.add(self.SubscridebGames(
+                appID=values["appID"],
+                name=values["name"],
+                discount=values["discount"],
+                finalFormatted=values["priceFormatted"],
+                serverID=serverID
+            ))
+        except IntegrityError:
+            return False
 
         session.commit()
         session.close()
 
+        return True
 
-    def getSubscribed(self):
+    def getSubscribed(self, serverID):
 
         DBSesion = sessionmaker(bind=self.base)
         session = DBSesion()
 
         arr = []
 
-        for each in session.query(self.SubscridebGames):
+        for each in session.query(self.SubscridebGames).where(self.SubscridebGames.serverID==serverID):
             arr.append(App(
                 appID=each.appID,
                 name=each.name,
                 discount=each.discount,
-                finalFormatted=each.finalFormatted
+                finalFormatted=each.finalFormatted,
+                serverID=each.serverID
             ))
+
+
+        session.commit()
+        session.close()
 
         return arr
 
-    def modifySubbscribed(self, app: App):
+    def modifySubbscribed(self, app: App, serverID):
 
         DBSesion = sessionmaker(bind=self.base)
         session = DBSesion()
 
-        session.query(self.SubscridebGames).update().where(self.SubscridebGames.appID==app.appID).values(
-            discount = app.discount,
-            priceFormatted = app.priceFormatted
-        )
+        stmt = update(self.SubscridebGames).where(
+            self.SubscridebGames.serverID==serverID and self.SubscridebGames.appID==app.appID
+            ).values(
+                    bdiscount = app.discount,
+                    priceFormatted = app.priceFormatted
+            ).execution_options(synchronize_session="fetch")
+
+        session.execute(stmt)
 
         session.commit()
         session.close()
 
 
-    def deleteSubscribed(self, app: App):
+    def deleteSubscribed(self, app: App, serverID):
 
         DBSesion = sessionmaker(bind=self.base)
         session = DBSesion()
 
-        session.query(self.SubscridebGames).delete().where(self.SubscridebGames.appID==app.appID)
+        session.query(self.SubscridebGames).filter(
+            self.SubscridebGames.serverID == serverID and self.SubscridebGames.appID==app.appID
+        ).delete()
 
         session.commit()
         session.close()
@@ -188,12 +228,104 @@ class Database:
 
 
 
+class JanuszDB:
+
+    base = create_engine("sqlite:///database/janusz.db")
+
+    MD = MetaData()
+
+    BaseModel = declarative_base(metadata=MD)
+
+    class Servers(BaseModel):
+        __tablename__ = "Servers"
+        serverID = Column(String(100), primary_key=True)
+        bindChannel = Column(String(100))
 
 
+    def __init__(self):
+        self.BaseModel.metadata.create_all(self.base)
+        self.mapper = inspect(self.Servers)
+
+    def getServers(self):
+
+        DBSesion = sessionmaker(bind=self.base)
+        session = DBSesion()
+
+        arr = []
+
+        for each in session.query(self.Servers):
+            arr.append([each.serverID, each.bindChannel])
 
 
+        session.commit()
+        session.close()
+
+        return arr
 
 
+    def addServer(self, serverID, channelID):
+
+        for element in self.getServers():
+            if serverID == element[0]:
+                return self.modifyServer(serverID, channelID)
 
 
+        DBSesion = sessionmaker(bind=self.base)
+        session = DBSesion()
+
+        session.add(self.Servers(
+            serverID = serverID,
+            bindChannel = channelID
+        ))
+
+        session.commit()
+        session.close()
+
+        print(f"Channel added!")
+
+        return True
+
+    def modifyServer(self, serverID, channelID):
+
+
+        for element in self.getServers():
+            if str(channelID) == element[1]:
+                return False
+
+
+        DBSesion = sessionmaker(bind=self.base)
+        session = DBSesion()
+
+        stmt = update(self.Servers).where(self.Servers.serverID == serverID).values(
+            bindChannel=channelID
+            ).execution_options(synchronize_session="fetch")
+
+        session.execute(stmt)
+
+        session.commit()
+        session.close()
+
+        print(f"Channel modified!")
+
+        return True
+
+
+    def deleteServer(self, serverID):
+
+        for element in self.getServers():
+            if serverID == element[0]:
+
+                DBSesion = sessionmaker(bind=self.base)
+                session = DBSesion()
+
+                session.query(self.Servers).filter(self.Servers.serverID == serverID).delete()
+
+                print(f"Channel deleted!")
+
+                session.commit()
+                session.close()
+
+                return True
+
+        return False
 

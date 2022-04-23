@@ -6,18 +6,18 @@ from database.Database import getDatabase
 
 S = None
 
-def getSteam():
+def getSteam(FLAG=True):
 
     global S
     if S is None:
-        S = Steam()
+        S = Steam(FLAG)
 
     return S
 
 
 class Steam:
 
-    def __init__(self):
+    def __init__(self, FLAG):
 
         self.KEY = "F4A04A3F753F55A7D6D9BEFEB35EB92C"
 
@@ -32,11 +32,11 @@ class Steam:
             res.selfSetValues();
             print(res.getValues())
         """
-
-        if not os.path.exists(os.path.join("database", "gamesInfo.db")):
-            self.gatherData()
-        else:
-            self.updateData()
+        if FLAG:
+            if not os.path.exists(os.path.join("database", "gamesInfo.db")):
+                self.gatherData()
+            else:
+                self.updateData()
 
         #self.getAppArrWithName("PAYDAY")
 
@@ -67,6 +67,8 @@ class Steam:
 
     def updateData(self):
 
+        print(f"Gathering new data from Steam ...")
+
         db = getDatabase()
 
         data = db.getAllRecords()
@@ -88,42 +90,32 @@ class Steam:
                 print(f"Adding {app.appID} ({app.name})")
                 db.putData(app)
             else:
-                print(f"{each['appid']} ({each['name']}) is already in database")
+                #print(f"{each['appid']} ({each['name']}) is already in database")
+                pass
 
         print("All is up to date!")
 
 
 
-
-
-
     def getAppArrWithName(self, name):
-
-        data = getDatabase().getRecordByName(name)
-
-        arr = []
-
-        for each in data:
-            arr.append(each.getValues())
-
-        return arr
+        return getDatabase().getRecordByName(name)
 
 
 
 
-    def subscribe(self, appid : int):
+    def subscribe(self, appid : int, serverID):
 
         app = self.getApp(appid)
 
         if app.appID != 0:
-            getDatabase().subscribe(app)
+            return getDatabase().subscribe(app, serverID)
+        return False
 
-
-    def checkSubscribed(self):
+    def checkSubscribed(self, serverID):
 
         db = getDatabase()
 
-        apps = db.getSubscribed()
+        apps = db.getSubscribed(serverID)
 
         discounted = []
 
@@ -136,10 +128,14 @@ class Steam:
 
         return discounted
 
+    def getSubscribed(self, serverID):
+        return getDatabase().getSubscribed(serverID)
 
-    def unsubscribe(self, appid: int):
 
-        getDatabase().deleteSubscribed(App(appid, "Whatever"))
+
+    def unsubscribe(self, appid: int, serverID):
+
+        getDatabase().deleteSubscribed(App(appid, "Whatever"), serverID)
 
 
 
@@ -150,17 +146,19 @@ class Steam:
         request = requests.get(url)
         file = request.json()
 
-        if file:
+        try:
+            if file:
 
-            name = file[f"{appid}"]["data"]["name"]
+                name = file[f"{appid}"]["data"]["name"]
 
-            app = App(appid, name)
-            if app.selfSetValues():
-                return app
+                app = App(appid, name)
+                if app.selfSetValues():
+                    return app
+                else:
+                    return App(0,"Error!")
+
             else:
                 return App(0,"Error!")
-
-        else:
+        except KeyError:
             return App(0,"Error!")
-
 
