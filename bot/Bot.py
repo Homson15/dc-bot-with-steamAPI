@@ -1,3 +1,4 @@
+import random
 
 import discord
 import discord as discord
@@ -25,6 +26,7 @@ class Bot(discord.Client):
         super().__init__()
 
         self.appMemory = {}
+        self.password = 0
 
 
     async def on_ready(self):
@@ -48,6 +50,7 @@ class Bot(discord.Client):
             await channel.send(f"Dobra, jj")
 
         print("Bot is up")
+        self.generatePassword();
 
     async def on_message(self, msg):
 
@@ -72,6 +75,14 @@ class Bot(discord.Client):
                         await msg.channel.send(f"Nie wypierdolisz mnie bo sam siem zwalniam!")
                     else:
                         await msg.channel.send(f"Sam spierdalaj, nawet tu nie pracuję")
+
+                elif user_command[0].lower() == "fill":
+                    user_command = user_command[1:]
+                    if user_command[0].lower() == "empty":
+                        user_command = user_command[1:]
+                        if user_command[0] == str(self.password):
+                            self.generatePassword()
+                            getSteam().fillNone()
                 return
 
             print(msg.channel.id, user_command)
@@ -155,3 +166,9 @@ class Bot(discord.Client):
 
         except IndexError:
             pass
+
+
+    def generatePassword(self):
+
+        self.password = random.randint(0, 99999999)
+        print(self.password)

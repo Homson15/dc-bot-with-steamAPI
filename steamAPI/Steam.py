@@ -162,3 +162,28 @@ class Steam:
         except KeyError:
             return App(0,"Error!")
 
+
+    def fillNone(self):
+        print(f"Scanning empty records")
+
+        db = getDatabase()
+
+        data = db.getNoneType()
+
+        #url = f"https://api.steampowered.com/ISteamApps/GetAppList/v2/"
+        #request = requests.get(url)
+        #file = request.json()
+
+        for element in data:
+            if not element.getValues()["type"]:
+                app = App(element.getValues()["appID"], element.getValues()["name"])
+                app.selfSetValues(False)
+                if app.type:
+                    db.modifyData(app)
+                    print(f"changed {app.name}")
+
+
+        #print("All is up to date!")
+
+
+

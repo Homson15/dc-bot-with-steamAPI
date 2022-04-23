@@ -93,6 +93,33 @@ class SteamDB:
         session.commit()
         session.close()
 
+    def modifyData(self, app: App):
+
+        DBSesion = sessionmaker(bind=self.base)
+        session = DBSesion()
+
+        values = app.getValues()
+
+        stmt = update(self.GamesInfo).where(
+            self.GamesInfo.appID == app.appID
+        ).values(
+            appID=values["appID"],
+            name=values["name"],
+            isGame=values["isGame"],
+            type=values["type"],
+            parentID=values["parentID"],
+            developers=values["developers"],
+            currency=values["currency"],
+            initialPrice=values["initialPrice"],
+            discount=values["discount"],
+            finalFormatted=values["priceFormatted"]
+        ).execution_options(synchronize_session="fetch")
+
+        session.execute(stmt)
+
+        session.commit()
+        session.close()
+
     def getAllRecords(self):
 
         DBSesion = sessionmaker(bind=self.base)
@@ -147,6 +174,35 @@ class SteamDB:
         session.close()
 
         return arr
+
+
+    def getNoneType(self):
+
+        DBSesion = sessionmaker(bind=self.base)
+        session = DBSesion()
+
+        arr = []
+
+        for each in session.query(self.GamesInfo):
+            if not each.type:
+                arr.append(App(
+                    appID=each.appID,
+                    name=each.name,
+                    isGame=each.isGame,
+                    type=each.type,
+                    parent=each.parentID,
+                    developers=each.developers,
+                    currency=each.currency,
+                    price=each.initialPrice,
+                    discount=each.discount,
+                    finalFormatted=each.finalFormatted
+                ))
+
+        session.commit()
+        session.close()
+
+        return arr
+
 
 
     def subscribe(self, app : App, serverID):
