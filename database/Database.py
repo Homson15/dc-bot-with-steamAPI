@@ -56,7 +56,8 @@ class SteamDB:
 
     class SubscridebGames(BaseModel):
         __tablename__ = "SubscribedGames"
-        appID = Column(Integer, primary_key=True)
+        id = Column(Integer, primary_key=True)
+        appID = Column(Integer, nullable=False)
         name = Column(String(100), nullable=False)
         discount = Column(Integer, nullable=False)
         finalFormatted = Column(String(20))
