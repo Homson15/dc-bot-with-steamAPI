@@ -98,18 +98,30 @@ class Steam:
 
 
     def getAppArrWithName(self, name):
-        return getDatabase().getRecordByName(name)
+        ret = getDatabase().getRecordByName(name, True)
 
+        if not len(ret):
+            ret = getDatabase().getRecordByName(name)
+
+        return ret
 
 
 
     def subscribe(self, appid : int, serverID):
 
         app = self.getApp(appid)
+        data = self.getSubscribed(serverID)
+
+
+        for element in data:
+            if appid == element.appID:
+                return False
+
 
         if app.appID != 0:
             return getDatabase().subscribe(app, serverID)
         return False
+
 
     def checkSubscribed(self, serverID):
 
@@ -122,10 +134,10 @@ class Steam:
         for app in apps:
             oldDiscount = app.discount
             app.selfSetValues()
-            if app.discount < oldDiscount:
-                discounted.append(app)
+            if app.discount != oldDiscount:
+                if app.discount > oldDiscount:
+                    discounted.append(app)
                 db.modifySubbscribed(app)
-
         return discounted
 
     def getSubscribed(self, serverID):
@@ -134,7 +146,6 @@ class Steam:
 
 
     def unsubscribe(self, appid: int, serverID):
-
         getDatabase().deleteSubscribed(App(appid, "Whatever"), serverID)
 
 
@@ -186,4 +197,10 @@ class Steam:
         #print("All is up to date!")
 
 
+    def updateRecord(self, appID : int):
 
+        app = self.getApp(appID)
+        if app.selfSetValues():
+            return getDatabase().modifyData(app)
+
+        return False

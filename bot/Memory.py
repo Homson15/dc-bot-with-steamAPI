@@ -9,13 +9,17 @@ class Memory:
 
 
     def getInstance(self):
-        data = self.apparr[self.index]
-        return f"ID: {data['appID']}\n"\
-               f"Name: {data['name']}\n"\
-               f"Initial price: {float(data['initialPrice']) / 100}\n"\
-               f"Dicount: {data['discount'] > 0}\n"\
-               f"Final Price: {data['priceFormatted']}\n"\
-               f"<--Prev {self.index} Next->>\n"
+        data = self.apparr[self.index].getValues()
+        return (
+                f"ID: {data['appID']}\n"
+                f"Name: {data['name']}\n"
+                #f"Type: {data['type']}\n"
+                f"Initial price: {float(data['initialPrice']) / 100}\n"
+                f"Currency: {data['currency']}\n"
+                f"Dicount: {data['discount']}%\n"
+                #f"Final Price: {data['priceFormatted']}\n"
+                f"<--Prev {self.index} Next->>\n"
+        )
 
     def getNextInstance(self):
         self.index+=1
