@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 import discord
@@ -51,6 +52,7 @@ class Bot(discord.Client):
 
         print("Bot is up")
         self.generatePassword();
+        await self.timeListener()
 
     async def on_message(self, msg):
 
@@ -85,11 +87,11 @@ class Bot(discord.Client):
                             getSteam().fillNone()
                 return
 
-            print(msg.channel.id, user_command)
 
             for servers in getJanuszDatabase().getServers():
                 if msg.channel.id == int(servers[1]):
                     #Channes is one of binded channels is Janusz's database
+                    print(msg.channel.id, user_command)
                     steam = getSteam()
                     if user_command[0].lower() == "search":
                         user_command = user_command[1:]
@@ -110,9 +112,11 @@ class Bot(discord.Client):
                                         f"Index: {i}\n"
                                         f"ID: {data['appID']}\n"
                                         f"Name: {data['name']}\n"
+                                        #f"Type: {data['type']}\n"
                                         f"Initial price: {float(data['initialPrice']) / 100}\n"
-                                        f"Dicount: {data['discount'] > 0}\n"
-                                        f"Final Price: {data['priceFormatted']}\n"
+                                        f"Currency: {data['currency']}\n"
+                                        f"Dicount: {data['discount']}%\n"
+                                        #f"Final Price: {data['priceFormatted']}\n"
                                     )
                                     await msg.channel.send(f"#\n")
                                     i+=1
@@ -121,6 +125,14 @@ class Bot(discord.Client):
                             await msg.channel.send(f"Kobieto, powiedz co masz na myśli...")
                             await msg.channel.send(f"Ułatw zapracowanemu człowiekowi robotę")
                             print(f"EROOR: Given empty array as argument")
+
+                    elif user_command[0].lower() == 'update':
+                        user_command = user_command[1:]
+                        if user_command:
+                            if steam.updateRecord(int(user_command[0])):
+                                await msg.channel.send(f"Pobrano wartości na dowo dla {user_command[0]}")
+                            else:
+                                await msg.channel.send(f"Coś poszło nie tak przy aktualizowaniu danych")
 
 
                     elif user_command[0].lower() == 'show':
@@ -139,20 +151,36 @@ class Bot(discord.Client):
                             await msg.channel.send(memory.getInstance())
                             print("this instance of memory")
 
-                    elif user_command[0].lower() == 'add':
+                    elif user_command[0].lower() == 'sub':
                         user_command = user_command[1:]
-                        if f"{msg.guild.id}" in self.appMemory:
-                            if user_command:
-                                response = getSteam().subscribe(self.appMemory[f"{msg.guild.id}"].apparr[int(user_command[0])].getValues()["appID"], msg.guild.id)
-                                print("added by index")
-                            else:
-                                response = getSteam().subscribe(self.appMemory[f"{msg.guild.id}"].getApp().getValues()["appID"], msg.guild.id)
-                                print("added automaticly")
-                            if not response:
-                                await msg.channel.send(f"Coś się zjebało")
-                                await msg.channel.send(f"Rekord istnieje, albo aplikacja nie jest grą")
-                        else:
-                            await msg.channel.send(f"Przed wyruszeniem, należy przeszukać gry")
+                        if user_command:
+                            if user_command[0].lower() == 'index':
+                                user_command = user_command[1:]
+                                if f"{msg.guild.id}" in self.appMemory:
+                                    if user_command:
+                                        response = getSteam().subscribe(self.appMemory[f"{msg.guild.id}"].apparr[int(user_command[0])].getValues()["appID"], msg.guild.id)
+                                        await msg.channel.send(f"Got it")
+                                        print("added by index")
+                                    else:
+                                        response = getSteam().subscribe(self.appMemory[f"{msg.guild.id}"].getApp().getValues()["appID"], msg.guild.id)
+                                        await msg.channel.send(f"Got it")
+                                        print("added automaticly")
+                                    if not response:
+                                        await msg.channel.send(f"Coś się zjebało")
+                                        await msg.channel.send(f"Rekord istnieje, albo aplikacja nie jest grą")
+                                else:
+                                    await msg.channel.send(f"Przed wyruszeniem, należy przeszukać gry")
+                            elif user_command[0].lower() == 'id':
+                                user_command = user_command[1:]
+                                if user_command:
+                                    for appid in user_command:
+                                        response = getSteam().subscribe(int(appid), msg.guild.id)
+                                        print("added by index")
+                                        if not response:
+                                            await msg.channel.send(f"Coś się zjebało")
+                                            await msg.channel.send(f"Czy na pewno chciałeś {appid}?")
+                                        else:
+                                            await msg.channel.send(f"Dodaję {appid}")
 
                     elif user_command[0].lower() == "subed":
                         response = getSteam().getSubscribed(msg.guild.id)
@@ -160,8 +188,16 @@ class Bot(discord.Client):
                             data = element.getValues()
                             await msg.channel.send(f"ID: {data['appID']}\n"\
                                                    f"Name: {data['name']}\n"\
-                                                   f"Dicount: {data['discount'] > 0}\n"\
+                                                   f"Dicount: {data['discount']}%\n"\
                                                    f"Final Price: {data['priceFormatted']}\n")
+
+                    elif user_command[0].lower() == "unsub":
+                        user_command = user_command[1:]
+                        if user_command:
+                            for appid in user_command:
+                                steam.unsubscribe(int(appid), msg.guild.id)
+                                await msg.channel.send(f"Wyjebano chuja z bazy")
+
 
 
         except IndexError:
@@ -172,3 +208,30 @@ class Bot(discord.Client):
 
         self.password = random.randint(0, 99999999)
         print(self.password)
+
+
+    async def timeListener(self):
+        while True:
+            for server in getJanuszDatabase().getServers():
+                channel = self.get_channel(int(server[1]))
+
+
+                await channel.send(f"Skanowanie promek Bzz Bzz\n")
+                print("Checking for discounts...")
+
+                ret = getSteam().checkSubscribed(int(server[0]))
+                if len(ret) > 0:
+                    #channel = self.get_channel(server[1])
+                    await channel.send(f"A KURŁA PROMKI JAK W LIDLU!!!!\n")
+                    for app in ret:
+                        await channel.send(
+                            f"{app.name}\n"
+                            f"Promka {app.discount} %\n"
+                            f"{app.finalPrice}"
+                        )
+
+
+            await asyncio.sleep(60 * 15) # 60 sec * 15 = 15 minutes
+
+
+

@@ -121,6 +121,8 @@ class SteamDB:
         session.commit()
         session.close()
 
+        return True
+
     def getAllRecords(self):
 
         DBSesion = sessionmaker(bind=self.base)
@@ -147,7 +149,7 @@ class SteamDB:
 
         return arr
 
-    def getRecordByName(self, name):
+    def getRecordByName(self, name, typeRESTR=False):
 
         DBSesion = sessionmaker(bind=self.base)
         session = DBSesion()
@@ -155,7 +157,7 @@ class SteamDB:
         arr = []
 
         for each in session.query(self.GamesInfo):
-            if name in each.name and each.type == 'game':
+            if name.lower() in each.name.lower() and (each.type == 'game' or typeRESTR):
                 arr.append(App(
                     appID=each.appID,
                     name=each.name,
@@ -275,7 +277,7 @@ class SteamDB:
         session = DBSesion()
 
         session.query(self.SubscridebGames).filter(
-            self.SubscridebGames.serverID == serverID and self.SubscridebGames.appID==app.appID
+            self.SubscridebGames.serverID == serverID, self.SubscridebGames.appID==app.appID
         ).delete()
 
         session.commit()
