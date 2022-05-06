@@ -156,7 +156,7 @@ class SteamDB:
 
         arr = []
 
-        for each in session.query(self.GamesInfo):
+        for each in session.query(self.GamesInfo).where(self.GamesInfo.type != "movie"):
             if name.lower() in each.name.lower() and (each.type == 'game' or typeRESTR):
                 arr.append(App(
                     appID=each.appID,
