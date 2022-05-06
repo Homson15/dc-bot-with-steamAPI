@@ -19,7 +19,7 @@ class App:
         self.priceFormatted = finalFormatted
         self.serverID = serverID
 
-        self.url = f'https://store.steampowered.com/api/appdetails?appids={appID}'
+        self.url = f'https://store.steampowered.com/api/appdetails?appids={appID}&currency=25'
 
         self.valuesSet = False
 
@@ -37,25 +37,38 @@ class App:
         try:
             data = file[f"{self.appID}"]["data"]
 
+            #print("APPID/DATA")
+
             self.type = data["type"]
+
+            #print(f"TYPE: {self.type}")
 
             if self.type=="game":
                 self.isGame = True
             else:
                 self.parent = data["fullgame"]["appid"]
 
-            self.developers = data["developers"][0]
+            self.developers = data.get("developers", [])[0]
 
-            if not data["is_free"]:
+            #print("DEVS")
+
+            if "is_free" in data:
 
                 price = data["price_overview"]
+
+                #print("PRICE")
 
                 self.currency = price["currency"]
                 self.initialPrice = price["initial"]
                 self.finalPrice = price["final"]
                 self.discount = price["discount_percent"]
 
+                #print("ELSE")
+
                 self.priceFormatted = price["final_formatted"]
+
+                #print("FORMATED")
+
 
             self.valuesSet = True
 

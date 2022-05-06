@@ -6,7 +6,7 @@ import discord as discord
 from database.Database import getJanuszDatabase
 from steamAPI.Steam import getSteam
 
-from bot.Memory import Memory
+from discord_components import DiscordComponents, Button, ButtonStyle, ComponentsBot, Interaction
 
 b = None
 
@@ -25,6 +25,8 @@ class Bot(discord.Client):
     def __init__(self):
 
         super().__init__()
+
+        DiscordComponents(self)
 
         self.appMemory = {}
         self.password = 0
@@ -51,7 +53,7 @@ class Bot(discord.Client):
             await channel.send(f"Dobra, jj")
 
         print("Bot is up")
-        self.generatePassword();
+        self.generatePassword()
         await self.timeListener()
 
     async def on_message(self, msg):
@@ -99,8 +101,9 @@ class Bot(discord.Client):
                         if arg:                                         #If no arguemnt is given, than Database searches for any argument. We don't want that
                             #print(arg)
                             arr = steam.getAppArrWithName(arg)
-                            arraylen = len(arr)
-                            self.appMemory[f"{msg.guild.id}"] = Memory(arr)
+                            #arraylen = len(arr)
+                            memory = self.appMemory[f"{msg.guild.id}"] = Memory(arr)
+                            """
                             if arraylen > 5:
                                 await msg.channel.send(f"Znaleziono {arraylen} wyników \naby je pokazać napisz 'show'")
                             else:
@@ -120,6 +123,14 @@ class Bot(discord.Client):
                                     )
                                     await msg.channel.send(f"#\n")
                                     i+=1
+                            """
+
+                            sendMSG = await msg.channel.send(
+                                embed=memory.getEmbedMessage(),
+                                components=[[Button(style=3, label="←", custom_id=f"{msg.guild.id}LeftButton"),
+                                             Button(style=4, label="➡", custom_id=f"{msg.guild.id}RightButton")]]
+                            )
+                            memory.setMSG(sendMSG)
 
                         else:
                             await msg.channel.send(f"Kobieto, powiedz co masz na myśli...")
@@ -144,12 +155,11 @@ class Bot(discord.Client):
                             #print(user_command)
                             if user_command:                            #if user input is not empty after 'show'
                                 if user_command[0].lower() == "next":
-                                    memory.getNextInstance()
+                                    await memory.getNextInstance().edit(embed=memory.getEmbedMessage())
                                 elif user_command[0].lower() == "prev":
-                                    memory.getPrevInstance()
+                                    await memory.getPrevInstance().edit(embed=memory.getEmbedMessage())
 
-                            await msg.channel.send(memory.getInstance())
-                            print("this instance of memory")
+
 
                     elif user_command[0].lower() == 'sub':
                         user_command = user_command[1:]
@@ -210,13 +220,24 @@ class Bot(discord.Client):
         print(self.password)
 
 
+    async def on_disconnect(self):
+
+        for each in getJanuszDatabase().getServers():
+            channel = self.get_channel(int(each[1])) #Searches gor channel object by id from database
+            #print(channel)
+            if channel is None:
+                continue
+
+            await channel.send(f"NAURA")
+
+
     async def timeListener(self):
         while True:
             for server in getJanuszDatabase().getServers():
                 channel = self.get_channel(int(server[1]))
 
 
-                await channel.send(f"Skanowanie promek Bzz Bzz\n")
+                #await channel.send(f"Skanowanie promek Bzz Bzz\n")
                 print("Checking for discounts...")
 
                 ret = getSteam().checkSubscribed(int(server[0]))
@@ -234,4 +255,78 @@ class Bot(discord.Client):
             await asyncio.sleep(60 * 15) # 60 sec * 15 = 15 minutes
 
 
+    async def on_button_click(self, interaction):
 
+        if interaction.responded:
+            return
+
+        if interaction.guild.id in getJanuszDatabase().getServers()[0]:
+
+            memory = self.appMemory[f"{interaction.guild.id}"]
+
+            if interaction.custom_id.endswith("LeftButton"):
+
+                await memory.getPrevInstance().edit(
+                    embed=memory.getEmbedMessage(),
+                    components = [[Button(style=3, label="←", custom_id=f"{interaction.guild.id}LeftButton"),
+                                   Button(style=4, label="➡", custom_id=f"{interaction.guild.id}RightButton")]]
+                )
+
+            if interaction.custom_id.endswith("RightButton"):
+
+                await memory.getNextInstance().edit(
+                    embed=memory.getEmbedMessage(),
+                    components = [[Button(style=3, label="←", custom_id=f"{interaction.guild.id}LeftButton"),
+                                   Button(style=4, label="➡", custom_id=f"{interaction.guild.id}RightButton")]]
+                )
+
+        try:
+            await interaction.respond(content="")
+        except discord.errors.HTTPException:
+            pass
+
+
+
+
+
+class Memory:
+
+    def __init__(self, apparr):
+
+        self.apparr = apparr
+        self.index = 0
+        self.msg = None
+
+
+    def getInstance(self):
+        data = self.apparr[self.index].getValues()
+        return (
+                f"ID: {data['appID']}\n"
+                #f"Name: {data['name']}\n"
+                f"Type: {data['type']}\n"
+                f"Initial price: {float(data['initialPrice']) / 100}\n"
+                #f"Currency: {data['currency']}\n"
+                f"Dicount: {data['discount']}%\n"
+                f"Final Price: {data['priceFormatted']}\n"
+                f"<--Prev {self.index} Next->>\n"
+        )
+
+    def getEmbedMessage(self):
+        data = self.apparr[self.index].getValues()
+        embed = discord.embeds.Embed(title=data["name"], description=self.getInstance(), color=discord.colour.Colour.random())
+
+        return embed
+
+    def getNextInstance(self):
+        self.index+=1
+        return self.msg
+
+    def getPrevInstance(self):
+        self.index-=1
+        return self.msg
+
+    def getApp(self):
+        return self.apparr[self.index]
+
+    def setMSG(self, msg):
+        self.msg = msg

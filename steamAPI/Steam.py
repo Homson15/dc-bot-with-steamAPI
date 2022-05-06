@@ -201,6 +201,7 @@ class Steam:
 
         app = self.getApp(appID)
         if app.selfSetValues():
+            print(app.getValues())
             return getDatabase().modifyData(app)
 
         return False
