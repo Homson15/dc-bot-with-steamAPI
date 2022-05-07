@@ -48,7 +48,7 @@ class App:
             else:
                 self.parent = data["fullgame"]["appid"]
 
-            self.developers = data.get("developers", [])[0]
+            self.developers = data.get("developers", [""])[0]
 
             #print("DEVS")
 
