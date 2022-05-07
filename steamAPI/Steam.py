@@ -137,7 +137,7 @@ class Steam:
             if app.discount != oldDiscount:
                 if app.discount > oldDiscount:
                     discounted.append(app)
-                db.modifySubbscribed(app)
+                db.modifySubbscribed(app, serverID)
         return discounted
 
     def getSubscribed(self, serverID):
@@ -205,3 +205,7 @@ class Steam:
             return getDatabase().modifyData(app)
 
         return False
+
+    def updateRecordByApp(self, app: App):
+        return getDatabase().modifyData(app)
+

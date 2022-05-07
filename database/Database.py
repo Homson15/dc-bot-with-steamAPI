@@ -156,7 +156,7 @@ class SteamDB:
 
         arr = []
 
-        for each in session.query(self.GamesInfo).where(self.GamesInfo.type != "movie"):
+        for each in session.query(self.GamesInfo).where(self.GamesInfo.type != "movie", self.GamesInfo.type != "advertising", self.GamesInfo.type != "episode"):
             if name.lower() in each.name.lower() and (each.type == 'game' or typeRESTR):
                 arr.append(App(
                     appID=each.appID,
@@ -261,8 +261,8 @@ class SteamDB:
         stmt = update(self.SubscridebGames).where(
             self.SubscridebGames.serverID==serverID and self.SubscridebGames.appID==app.appID
             ).values(
-                    bdiscount = app.discount,
-                    priceFormatted = app.priceFormatted
+                    discount = app.discount,
+                    finalFormatted = app.priceFormatted
             ).execution_options(synchronize_session="fetch")
 
         session.execute(stmt)
