@@ -121,6 +121,8 @@ class SteamDB:
         session.commit()
         session.close()
 
+        print("Updated app in database", app.name)
+
         return True
 
     def getAllRecords(self):
@@ -253,13 +255,15 @@ class SteamDB:
 
         return arr
 
-    def modifySubbscribed(self, app: App, serverID):
+    def modifySubscribed(self, app: App, serverID):
 
         DBSesion = sessionmaker(bind=self.base)
         session = DBSesion()
-
+        
+        
+        
         stmt = update(self.SubscridebGames).where(
-            self.SubscridebGames.serverID==serverID and self.SubscridebGames.appID==app.appID
+            (self.SubscridebGames.serverID==serverID) & (self.SubscridebGames.appID==app.appID)
             ).values(
                     discount = app.discount,
                     finalFormatted = app.priceFormatted
@@ -269,6 +273,10 @@ class SteamDB:
 
         session.commit()
         session.close()
+
+        print(serverID, "Updated subscribed app", app.name)
+
+        return True
 
 
     def deleteSubscribed(self, app: App, serverID):

@@ -24,7 +24,9 @@ class Bot(discord.Client):
 
     def __init__(self):
 
-        super().__init__()
+        intents = discord.Intents(messages=True, guilds=True)
+
+        super().__init__(intents=intents)
 
         DiscordComponents(self)
 
@@ -43,7 +45,7 @@ class Bot(discord.Client):
             await channel.send(f"Wstałem kurła")
             await channel.send(f"Czej, papiery ogarnę...")
 
-        getSteam(False) #Execute constructor for Steam api connections
+        getSteam() #Execute constructor for Steam api connections
 
         for each in getJanuszDatabase().getServers():
             channel = self.get_channel(int(each[1])) #Searches gor channel object by id from database
@@ -62,6 +64,8 @@ class Bot(discord.Client):
             return
 
         user_command = str(msg.content).split(" ")
+        print(msg.content)
+        print(user_command)
 
         try:
             if user_command[0] == "kurwa":
@@ -87,6 +91,10 @@ class Bot(discord.Client):
                         if user_command[0] == str(self.password):
                             self.generatePassword()
                             getSteam().fillNone()
+
+
+
+
                 return
 
 
@@ -132,6 +140,18 @@ class Bot(discord.Client):
                                 elif user_command[0].lower() == "prev":
                                     await memory.getPrevInstance().edit(embed=memory.getEmbedMessage())
 
+                    elif user_command[0].lower() == "add":
+                        user_command = user_command[1:]
+                        arg = ' '.join(str(e) for e in user_command)
+                        if not arg:
+                            return
+                        data = getSteam().addToDatabaseByName(arg)
+                        #await msg.channel.send(data)
+
+                        #TODO
+
+
+
 
 
                     elif user_command[0].lower() == 'sub':
@@ -176,6 +196,9 @@ class Bot(discord.Client):
                                 steam.unsubscribe(int(appid), msg.guild.id)
                                 await msg.channel.send(f"Wyjebano chuja z bazy")
 
+                    elif user_command[0].lower() == "ping":
+                        await msg.channel.send("SPIERDALAJ")
+
 
 
         except IndexError:
@@ -189,6 +212,13 @@ class Bot(discord.Client):
 
 
     async def timeListener(self):
+
+        def roleSearch(roles):
+            for r in roles:
+                if r.name == "Janusz newsletter":
+                    return r.id
+            return ""
+
         while True:
             for server in getJanuszDatabase().getServers():
                 channel = self.get_channel(int(server[1]))
@@ -200,6 +230,9 @@ class Bot(discord.Client):
                 ret = getSteam().checkSubscribed(int(server[0]))
                 if len(ret) > 0:
                     #channel = self.get_channel(server[1])
+
+                    role = roleSearch(channel.guild.roles)
+                    await channel.send(f'<@&{role}>\n' if role else '')
                     await channel.send(f"A KURŁA PROMKI JAK W LIDLU!!!!\n")
                     for app in ret:
                         await channel.send(
@@ -229,7 +262,7 @@ class Bot(discord.Client):
 
                 elif interaction.custom_id.endswith("Refresh"):
 
-                    if memory.refresh():
+                    if memory.refresh(interaction.guild.id):
                         await self.edit_menu(memory)
                     else:
                         await interaction.respond(content="Coś śmierdzi... Chyba nic na to nie poradzę")
@@ -244,7 +277,7 @@ class Bot(discord.Client):
         try:
             await interaction.respond(content="")
         except discord.errors.HTTPException:
-            pass
+            print(f"HTTPExeption error")
 
 
     async def set_menu(self, msg, appArr):
@@ -252,15 +285,18 @@ class Bot(discord.Client):
         memory = self.appMemory[f"{msg.guild.id}"] = Memory(appArr)
         memory.setMSG(await self.print_menu(msg, memory))
 
-    async def print_menu(self, msg, memory):
+    async def print_menu(self, msg, memory, FLAG=True): # FLAG=True -> create embed with buttons
 
+        if FLAG:
+            sendMSG = await msg.channel.send(
+                embed=memory.getEmbedMessage(),
+                components=[[Button(style=3, label="←", custom_id=f"{msg.guild.id}LeftButton"),
+                             Button(style=1, label="🔄", custom_id=f"{msg.guild.id}Refresh"),
+                             Button(style=4, label="→", custom_id=f"{msg.guild.id}RightButton")]]
+            )
 
-        sendMSG = await msg.channel.send(
-            embed=memory.getEmbedMessage(),
-            components=[[Button(style=3, label="←", custom_id=f"{msg.guild.id}LeftButton"),
-                         Button(style=1, label="🔄", custom_id=f"{msg.guild.id}Refresh"),
-                         Button(style=4, label="→", custom_id=f"{msg.guild.id}RightButton")]]
-        )
+        else :
+            sendMSG = await msg.channel.send(embed=memory.getEmbedMessage())
         return sendMSG
 
     async def edit_menu(self, memory, move="none"):
@@ -311,9 +347,9 @@ class Memory:
 
         return embed
 
-    def refresh(self):
+    def refresh(self, serverID):
         if self.apparr[self.index].selfSetValues():
-            return getSteam().updateRecordByApp(self.apparr[self.index])
+            return getSteam().updateRecordByApp(self.apparr[self.index], serverID)
         return False
 
     def getNextInstance(self):

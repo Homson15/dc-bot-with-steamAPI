@@ -36,11 +36,10 @@ class Steam:
             if not os.path.exists(os.path.join("database", "gamesInfo.db")):
                 self.gatherData()
             else:
+                pass
                 self.updateData()
 
         #self.getAppArrWithName("PAYDAY")
-
-
 
     def gatherData(self):
 
@@ -63,7 +62,6 @@ class Steam:
             app.selfSetValues()
             print(f"Adding {app.name}")
             db.putData(app)
-
 
     def updateData(self):
 
@@ -95,16 +93,13 @@ class Steam:
 
         print("All is up to date!")
 
-
-
     def getAppArrWithName(self, name):
         ret = getDatabase().getRecordByName(name, True)
 
-        if not len(ret):
+        if not len(ret): # It shoudn't work btw
             ret = getDatabase().getRecordByName(name)
 
         return ret
-
 
 
     def subscribe(self, appid : int, serverID):
@@ -122,7 +117,6 @@ class Steam:
             return getDatabase().subscribe(app, serverID)
         return False
 
-
     def checkSubscribed(self, serverID):
 
         db = getDatabase()
@@ -137,18 +131,14 @@ class Steam:
             if app.discount != oldDiscount:
                 if app.discount > oldDiscount:
                     discounted.append(app)
-                db.modifySubbscribed(app, serverID)
+                db.modifySubscribed(app, serverID)
         return discounted
 
     def getSubscribed(self, serverID):
         return getDatabase().getSubscribed(serverID)
 
-
-
     def unsubscribe(self, appid: int, serverID):
         getDatabase().deleteSubscribed(App(appid, "Whatever"), serverID)
-
-
 
 
     def getApp(self, appid: int):
@@ -172,7 +162,6 @@ class Steam:
                 return App(0,"Error!")
         except KeyError:
             return App(0,"Error!")
-
 
     def fillNone(self):
         print(f"Scanning empty records")
@@ -206,6 +195,22 @@ class Steam:
 
         return False
 
-    def updateRecordByApp(self, app: App):
-        return getDatabase().modifyData(app)
+    def updateRecordByApp(self, app: App, serverID):
+        return getDatabase().modifyData(app) and getDatabase().modifySubscribed(app, serverID)
+
+    def addToDatabaseByName(self, name):
+
+        url = f"https://api.steampowered.com/ISteamApps/GetAppList/v2/"
+        request = requests.get(url)
+        file = request.json()
+
+        db = getDatabase()
+
+        ret = []
+
+        for each in file["applist"]["apps"]:
+            if name.lower() in each["name"].lower():
+                ret.append(App(each["appid"], each["name"]))
+
+        return ret # App list
 

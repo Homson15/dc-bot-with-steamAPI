@@ -27,6 +27,7 @@ class App:
 
         request = requests.get(self.url)
         file = request.json()
+        #print(f"{self.url}")
 
 
         if not file:
